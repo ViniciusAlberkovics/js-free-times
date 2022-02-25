@@ -1,8 +1,48 @@
+const { useState } = require("react");
+const moment = require("moment");
+
 import "./styles.css";
 import { makeFreeTime } from "./makeFreeTime";
 
 export default function App() {
-  const { unavailableSorted, groupped, completedGroup } = makeFreeTime();
+  const [unavailable, setUnavailable] = useState([
+    {
+      id: 1,
+      startTime: moment("08:00", "HH:mm"),
+      endTime: moment("08:30", "HH:mm")
+    },
+    {
+      id: 2,
+      startTime: moment("09:30", "HH:mm"),
+      endTime: moment("10:00", "HH:mm")
+    },
+    {
+      id: 3,
+      startTime: moment("10:00", "HH:mm"),
+      endTime: moment("11:00", "HH:mm")
+    },
+    {
+      id: 4,
+      startTime: moment("12:15", "HH:mm"),
+      endTime: moment("12:30", "HH:mm")
+    },
+    {
+      id: 5,
+      startTime: moment("14:20", "HH:mm"),
+      endTime: moment("14:40", "HH:mm")
+    },
+    {
+      id: 6,
+      startTime: moment("21:20", "HH:mm"),
+      endTime: moment("22:00", "HH:mm")
+    },
+    {
+      id: 7,
+      startTime: moment("22:20", "HH:mm"),
+      endTime: moment("22:30", "HH:mm")
+    }
+  ]);
+  const { unavailableSorted, groupped, completedGroup } = makeFreeTime(unavailable);
   return (
     <div className="App">
       <h3>Horario Ocupado</h3>
