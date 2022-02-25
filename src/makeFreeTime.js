@@ -1,5 +1,4 @@
 const moment = require("moment");
-const { groupBy } = require("lodash");
 
 const unavailable = [
   {
@@ -85,9 +84,17 @@ export const makeFreeTime = () => {
         )
     )
   );
+
+  const completedGroup = completeGroupTimes(groupped, 30);
+  console.log(`completedGroup:`, completedGroup.map(c => ({
+    incrementalId: c.incrementalId,
+    startDate: c.startDate.format(),
+    endDate: c.endDate.format()
+  })))
   return {
     unavailableSorted,
-    groupped
+    groupped,
+    completedGroup,
   };
 };
 
@@ -97,14 +104,35 @@ export const getTimes = (startTime, endTime, intervalInMinutes) => {
   const times = [];
   const times2 = [];
   let id = 0;
+  const compareDiff = endTime.diff(startTime, 'minutes', true);
+  console.log(`getTimes:`, {
+    startTime: startTime.format(),
+    endTime: endTime.format(),
+    compareDiff
+  })
+  const isPerfectInterval = Number.isInteger(compareDiff);
+
+
   while (startTimeTemp.isBefore(endTime)) {
-    times.push({
-      incrementalId: id,
-      startDate: startTimeTemp.clone(),
-      endDate: startTimeTemp.clone().add(intervalInMinutes, "minutes")
-    });
-    times2.push({ incrementalId: id, time: startTimeTemp.clone() });
-    startTimeTemp.add(intervalInMinutes, "minutes");
+    const added = startTimeTemp.clone().add(intervalInMinutes, "minutes");
+    if (!added.isBefore(endTime) && !isPerfectInterval) {
+      const clEndTime = endTime.clone();
+      times.push({
+        incrementalId: id,
+        startDate: startTimeTemp.clone(),
+        endDate: clEndTime
+      });
+      times2.push({ incrementalId: id, time: clEndTime });
+      startTimeTemp.add(intervalInMinutes, "minutes");
+    } else {
+      times.push({
+        incrementalId: id,
+        startDate: startTimeTemp.clone(),
+        endDate: added.isAfter(endTime) ? endTime.clone() : added
+      });
+      times2.push({ incrementalId: id, time: startTimeTemp.clone() });
+      startTimeTemp.add(intervalInMinutes, "minutes");
+    }
     id++;
   }
   console.log(
@@ -137,29 +165,36 @@ export const groupTimes = (freeTimes) => {
     let start = freeTimes.shift()?.time;
     /** @type {{incrementalId: number, time: moment.Moment}} */
     let current = start.clone();
-    let i = 0;
-    for (const ft of freeTimes) {
+
+    for (const [i, ft] of freeTimes.entries()) {
       if (ft.time.isSame(current, "minutes")) continue;
 
       if (ft.time.diff(current, "minutes") === 1) {
         current = ft.time.clone();
       } else {
         groups.push({
-          start: start.clone(),
-          end: current.clone()
+          start: start.clone().add(-1, 'minutes'),
+          end: current.clone().add(1, 'minute')
         });
 
         current = ft.time.clone();
         start = ft.time.clone();
       }
 
-      console.log(
-        ft.time.format(),
-        current.format(),
-        start.format(),
-        ft.time.diff(start, "minutes"),
-        ft.time.diff(current, "minutes")
-      );
+      if (i === freeTimes.length - 1) {
+        groups.push({
+          start: start.clone().add(-1, 'minutes'),
+          end: current.clone().add(1, 'minute')
+        });
+      }
+
+      // console.log(
+      //   ft.time.format(),
+      //   current.format(),
+      //   start.format(),
+      //   ft.time.diff(start, "minutes"),
+      //   ft.time.diff(current, "minutes")
+      // );
       // if (i === 3) {
       //   break;
       // }
@@ -178,3 +213,16 @@ export const groupTimes = (freeTimes) => {
 
   return groups;
 };
+
+/**
+ * @param {{start: moment.Moment;  end: moment.Moment;}[]} groups 
+ * @param {number} intervalInMinutes 
+ * @returns {{ incrementalId: number;startDate: moment.Moment;endDate: moment.Moment;}[]}  
+ */
+export const completeGroupTimes = (groups, intervalInMinutes) => {
+  const base = [];
+
+  groups.forEach(g => base.push(...getTimes(g.start, g.end, intervalInMinutes).times));
+  console.log(`base:`, base.length)
+  return base;
+}
