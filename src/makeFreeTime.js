@@ -198,8 +198,6 @@ export const groupTimes = (freeTimes) => {
       // if (i === 3) {
       //   break;
       // }
-
-      i++;
     }
   }
 
